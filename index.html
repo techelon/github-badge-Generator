@@ -1,0 +1,1306 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BadgeForge Pro - Advanced GitHub Badge Generator</title>
+    <meta name="description" content="Create professional, dynamic badges for your GitHub repositories with real-time preview and analytics. The most advanced badge generator for developers.">
+    <meta name="keywords" content="GitHub badges, shield.io, repository badges, markdown badges, development tools">
+    
+    <!-- Styles -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#0366d6',
+                        'primary-dark': '#044289',
+                        'secondary': '#2ea44f',
+                        'accent': '#f6f8fa',
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #ffffff 0%, #f6f8fa 50%, #ffffff 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .gradient-bg::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(
+                circle at 50% 50%,
+                rgba(3, 102, 214, 0.1) 0%,
+                transparent 50%
+            );
+            animation: pulse 8s ease-in-out infinite;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(3, 102, 214, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .floating {
+            animation: floating 3s ease-in-out infinite;
+        }
+        
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .badge-preview-card {
+            background: rgba(246, 248, 250, 0.8);
+            border: 1px dashed rgba(3, 102, 214, 0.2);
+        }
+        
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #0366d6;
+            border-radius: 3px;
+        }
+
+        /* Add to your existing styles */
+.custom-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+    padding-bottom: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+/* Add shadow indicators for scroll */
+.custom-scrollbar {
+    position: relative;
+}
+
+.custom-scrollbar::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 5px;
+    width: 40px;
+    background: linear-gradient(to left, white, transparent);
+    pointer-events: none;
+}
+
+.custom-scrollbar::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 5px;
+    width: 40px;
+    background: linear-gradient(to right, white, transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+    </style>
+
+    <script>
+      // Store the current category and its configurations
+let currentCategory = 'build';
+const categoryConfigs = {
+    build: {
+        types: [
+            { value: 'build', label: 'Build Status' },
+            { value: 'deploy', label: 'Deployment' },
+            { value: 'pipeline', label: 'Pipeline' }
+        ],
+        defaultColor: 'blue',
+        defaultLabel: 'build'
+    },
+    testing: {
+        types: [
+            { value: 'tests', label: 'Tests' },
+            { value: 'coverage', label: 'Coverage' },
+            { value: 'codecov', label: 'Codecov' }
+        ],
+        defaultColor: 'green',
+        defaultLabel: 'tests'
+    },
+    package: {
+        types: [
+            { value: 'version', label: 'Version' },
+            { value: 'downloads', label: 'Downloads' },
+            { value: 'size', label: 'Size' }
+        ],
+        defaultColor: 'purple',
+        defaultLabel: 'package'
+    },
+    version: {
+        types: [
+            { value: 'npm', label: 'npm Version' },
+            { value: 'github', label: 'GitHub Release' },
+            { value: 'tag', label: 'Latest Tag' }
+        ],
+        defaultColor: 'blue',
+        defaultLabel: 'version'
+    },
+    license: {
+        types: [
+            { value: 'license', label: 'License' },
+            { value: 'license-scan', label: 'License Scan' }
+        ],
+        defaultColor: 'green',
+        defaultLabel: 'license'
+    },
+    tech: {
+        types: [
+            { value: 'language', label: 'Language' },
+            { value: 'framework', label: 'Framework' },
+            { value: 'platform', label: 'Platform' }
+        ],
+        defaultColor: 'yellow',
+        defaultLabel: 'tech'
+    },
+    stats: {
+        types: [
+            { value: 'stars', label: 'Stars' },
+            { value: 'forks', label: 'Forks' },
+            { value: 'issues', label: 'Issues' }
+        ],
+        defaultColor: 'blue',
+        defaultLabel: 'stats'
+    },
+    quality: {
+        types: [
+            { value: 'code-quality', label: 'Code Quality' },
+            { value: 'maintainability', label: 'Maintainability' },
+            { value: 'security', label: 'Security' }
+        ],
+        defaultColor: 'red',
+        defaultLabel: 'quality'
+    },
+    social: {
+        types: [
+            { value: 'twitter', label: 'Twitter' },
+            { value: 'discord', label: 'Discord' },
+            { value: 'youtube', label: 'YouTube' }
+        ],
+        defaultColor: 'purple',
+        defaultLabel: 'social'
+    }
+};
+
+// Initialize when the document is ready
+document.addEventListener('DOMContentLoaded', () => {
+    initializeCategoryButtons();
+    initializeColorButtons();
+    initializeLogoSelect();
+    initializeFormControls();
+    updateBadgePreview();
+});
+
+// Initialize category buttons
+function initializeCategoryButtons() {
+    const categoryNav = document.getElementById('category-nav');
+    categoryNav.addEventListener('click', (e) => {
+        if (e.target.classList.contains('category-btn')) {
+            const category = e.target.dataset.category;
+            switchCategory(category);
+        }
+    });
+}
+
+// Switch category function
+function switchCategory(category) {
+    // Update current category
+    currentCategory = category;
+    
+    // Update button styles
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        if (btn.dataset.category === category) {
+            btn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+            btn.classList.add('bg-indigo-600', 'text-white');
+        } else {
+            btn.classList.remove('bg-indigo-600', 'text-white');
+            btn.classList.add('bg-gray-200', 'hover:bg-gray-300');
+        }
+    });
+
+    // Update badge type options
+    const badgeTypeSelect = document.getElementById('badge-type');
+    badgeTypeSelect.innerHTML = '';
+    
+    const config = categoryConfigs[category];
+    config.types.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type.value;
+        option.textContent = type.label;
+        badgeTypeSelect.appendChild(option);
+    });
+
+    // Set default values for the category
+    document.getElementById('badge-label').value = config.defaultLabel;
+    setSelectedColor(config.defaultColor);
+    
+    // Update preview
+    updateBadgePreview();
+}
+
+// Initialize color buttons
+function initializeColorButtons() {
+    document.querySelectorAll('[data-color]').forEach(button => {
+        button.addEventListener('click', () => {
+            setSelectedColor(button.dataset.color);
+            updateBadgePreview();
+        });
+    });
+}
+
+// Set selected color
+function setSelectedColor(color) {
+    document.querySelectorAll('[data-color]').forEach(btn => {
+        btn.classList.remove('ring-2', 'ring-offset-2', 'ring-primary');
+        if (btn.dataset.color === color) {
+            btn.classList.add('ring-2', 'ring-offset-2', 'ring-primary');
+        }
+    });
+}
+
+// Initialize logo select
+function initializeLogoSelect() {
+    const logoSelect = document.getElementById('badge-logo');
+    const customLogoInput = document.getElementById('custom-logo');
+
+    logoSelect.addEventListener('change', () => {
+        customLogoInput.classList.toggle('hidden', logoSelect.value !== 'custom');
+        updateBadgePreview();
+    });
+}
+
+// Initialize form controls
+function initializeFormControls() {
+    const formInputs = [
+        'repo-input',
+        'badge-type',
+        'badge-style',
+        'badge-label',
+        'badge-message',
+        'badge-logo',
+        'custom-logo'
+    ];
+
+    formInputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('input', updateBadgePreview);
+            element.addEventListener('change', updateBadgePreview);
+        }
+    });
+
+    // Reset button
+    document.getElementById('reset-form').addEventListener('click', resetForm);
+    
+    // Copy buttons
+    document.getElementById('copy-markdown').addEventListener('click', () => {
+        copyToClipboard('markdown-output');
+    });
+    
+    document.getElementById('copy-html').addEventListener('click', () => {
+        copyToClipboard('html-output');
+    });
+}
+
+// Update badge preview
+function updateBadgePreview() {
+    const repo = document.getElementById('repo-input').value;
+    const type = document.getElementById('badge-type').value;
+    const style = document.getElementById('badge-style').value;
+    const label = document.getElementById('badge-label').value;
+    const message = document.getElementById('badge-message').value;
+    const logo = document.getElementById('badge-logo').value;
+    const customLogo = document.getElementById('custom-logo').value;
+    
+    const selectedColorBtn = document.querySelector('[data-color].ring-2');
+    const color = selectedColorBtn ? selectedColorBtn.dataset.color : 'blue';
+
+    // Construct badge URL
+    const baseUrl = 'https://img.shields.io/badge';
+    const logoUrl = logo === 'custom' ? customLogo : logo;
+    const badgeLabel = encodeURIComponent(label);
+    const badgeMessage = encodeURIComponent(message || 'passing');
+
+    const badgeUrl = `${baseUrl}/${badgeLabel}-${badgeMessage}-${color}?style=${style}&logo=${logoUrl}`;
+
+    // Update preview
+    const previewDiv = document.getElementById('badge-preview');
+    previewDiv.innerHTML = `<img src="${badgeUrl}" alt="Badge Preview">`;
+
+    // Update markdown output
+    const markdownOutput = document.getElementById('markdown-output');
+    markdownOutput.value = `![${label}](${badgeUrl})`;
+
+    // Update HTML output
+    const htmlOutput = document.getElementById('html-output');
+    htmlOutput.value = `<img src="${badgeUrl}" alt="${label}">`;
+}
+
+// Reset form function
+function resetForm() {
+    document.getElementById('repo-input').value = '';
+    document.getElementById('badge-label').value = '';
+    document.getElementById('badge-message').value = '';
+    document.getElementById('badge-style').value = 'flat';
+    document.getElementById('badge-logo').value = 'github';
+    document.getElementById('custom-logo').classList.add('hidden');
+    document.getElementById('custom-logo').value = '';
+    
+    switchCategory('build');
+}
+
+// Copy to clipboard function
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    element.select();
+    document.execCommand('copy');
+    
+    // Show feedback
+    const button = document.getElementById(`copy-${elementId.split('-')[0]}`);
+    const originalText = button.textContent;
+    button.textContent = 'Copied!';
+    setTimeout(() => {
+        button.innerHTML = `<i class="far fa-copy mr-1"></i>Copy`;
+    }, 2000);
+}
+
+// Generate badge button click handler
+document.getElementById('generate-badge').addEventListener('click', updateBadgePreview);
+
+// Replace the existing generate badge button click handler with this new version
+document.getElementById('generate-badge').addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    // Call updateBadgePreview to ensure latest changes are reflected
+    updateBadgePreview();
+    
+    // Add visual feedback for the button
+    const button = e.target;
+    const originalText = button.textContent;
+    const originalBg = button.classList.contains('bg-primary') ? 'bg-primary' : button.className.match(/bg-[a-zA-Z-]+/)[0];
+    
+    // Change button appearance to show success
+    button.textContent = '✓ Badge Generated!';
+    button.classList.remove(originalBg);
+    button.classList.add('bg-green-600');
+    
+    // Disable the button temporarily
+    button.disabled = true;
+    
+    // Reset button after 1.5 seconds
+    setTimeout(() => {
+        button.textContent = originalText;
+        button.classList.remove('bg-green-600');
+        button.classList.add(originalBg);
+        button.disabled = false;
+    }, 1500);
+    
+    // Focus on the markdown output to make it easy to copy
+    document.getElementById('markdown-output').focus();
+    document.getElementById('markdown-output').select();
+});
+
+    </script>
+</head>
+<body class="bg-white text-gray-800">
+    <!-- Announcement Bar -->
+    <div class="bg-primary text-white py-2" id="announcement-bar">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between text-sm">
+                <div class="flex items-center">
+                    <span class="hidden sm:inline">🎉 New: Custom Badge Templates & Dark Mode Now Available!</span>
+                    <span class="sm:hidden">🎉 New Features Available!</span>
+                </div>
+                <button class="hover:text-gray-200 transition-colors" id="close-announcement">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm sticky top-0 left-0 right-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- Logo and Brand -->
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+                            <i class="fas fa-certificate text-2xl text-white"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-gray-900">BadgeForge</h1>
+                            <p class="text-xs text-gray-500">Professional Badge Generator</p>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Navigation Links -->
+                <div class="hidden md:flex md:items-center md:space-x-6">
+                    <a href="#features" class="text-gray-500 hover:text-gray-900">Features</a>
+                    <a href="#templates" class="text-gray-500 hover:text-gray-900">Templates</a>
+                    <a href="#pricing" class="text-gray-500 hover:text-gray-900">Pricing</a>
+                    <a href="#docs" class="text-gray-500 hover:text-gray-900">Docs</a>
+                    <button id="theme-toggle" class="p-2 rounded-lg bg-gray-100 hover:bg-gray-200">
+                        <i class="far fa-moon"></i>
+                    </button>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <div class="md:hidden flex items-center">
+                    <button class="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation Menu -->
+    <div class="hidden md:hidden bg-white border-b border-gray-200" id="mobile-menu">
+        <div class="px-2 pt-2 pb-3 space-y-1">
+            <a href="#features" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">Features</a>
+            <a href="#templates" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">Templates</a>
+            <a href="#pricing" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">Pricing</a>
+            <a href="#docs" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-50">Documentation</a>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="gradient-bg min-h-screen flex items-center pt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+            <div class="text-center">
+                <!-- Floating Badge -->
+                <div class="floating inline-block mb-4 px-4 py-1 rounded-full bg-primary/10 border border-primary/20">
+                    <span class="bg-gradient-to-r from-primary to-primary-dark bg-clip-text text-transparent flex items-center">
+                        <span class="animate-pulse mr-2">⚡</span> 
+                        Professional GitHub Badge Generator
+                    </span>
+                </div>
+
+                <!-- Main Heading -->
+                <h1 class="text-4xl sm:text-6xl lg:text-7xl font-bold mb-8">
+                    Create Beautiful
+                    <span class="text-primary">GitHub Badges</span>
+                    <br>in Seconds
+                </h1>
+
+                <!-- Subtitle -->
+                <p class="text-xl mb-8 text-gray-600 max-w-2xl mx-auto">
+                    Generate professional, customizable badges for your repositories with our advanced badge generator. Perfect for showcasing build status, coverage, and more.
+                </p>
+
+                <!-- Search Bar -->
+                <div class="max-w-2xl mx-auto mb-8">
+                    <div class="flex shadow-sm rounded-lg overflow-hidden">
+                        <span class="inline-flex items-center px-4 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                            github.com/
+                        </span>
+                        <input type="text" id="repo-search" placeholder="username/repository" 
+                               class="flex-1 block w-full px-4 py-3 border border-gray-300 focus:ring-primary focus:border-primary sm:text-sm">
+                        <button class="px-6 bg-primary text-white font-medium hover:bg-primary-dark transition-colors">
+                            Generate
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Feature Badges -->
+                <div class="flex flex-wrap justify-center gap-4">
+                    <div class="glass-card px-4 py-2 rounded-full flex items-center space-x-2">
+                        <i class="fas fa-bolt text-primary"></i>
+                        <span class="text-gray-700">Real-time Preview</span>
+                    </div>
+                    <div class="glass-card px-4 py-2 rounded-full flex items-center space-x-2">
+                        <i class="fas fa-palette text-primary"></i>
+                        <span class="text-gray-700">Custom Styles</span>
+                    </div>
+                    <div class="glass-card px-4 py-2 rounded-full flex items-center space-x-2">
+                        <i class="fas fa-code text-primary"></i>
+                        <span class="text-gray-700">Multiple Formats</span>
+                    </div>
+                    <div class="glass-card px-4 py-2 rounded-full flex items-center space-x-2">
+                        <i class="fas fa-cloud text-primary"></i>
+                        <span class="text-gray-700">Cloud Sync</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+        <!-- Badge Generator Interface -->
+        <section class="py-16 bg-accent" id="generator">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <!-- Section Header -->
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900">Badge Generator</h2>
+                    <p class="mt-2 text-lg text-gray-600">Create custom badges for your GitHub repositories</p>
+                </div>
+    
+
+                 <!-- Category Navigation -->
+            <div class="mb-8">
+                <nav class="flex space-x-4 overflow-x-auto pb-4" id="category-nav">
+                    <button type="button" data-category="build" class="category-btn px-4 py-2 rounded-full bg-indigo-600 text-white">
+                        🚀 Build & Deploy
+                    </button>
+                    <button type="button" data-category="testing" class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300">
+                        🧪 Testing & Coverage
+                    </button>
+                    <button type="button" data-category="package" class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300">
+                        📦 Package Info
+                    </button>
+                    <button type="button" data-category="version" class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300">
+                        🔖 Version
+                    </button>
+                    <button type="button" data-category="license" class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300">
+                        📝 License
+                    </button>
+                    <button type="button" data-category="tech" class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300">
+                        🛠️ Tech Stack
+                    </button>
+                    <button type="button" data-category="stats" class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300">
+                        📊 Stats
+                    </button>
+                    <button type="button" data-category="quality" class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300">
+                        🔍 Quality
+                    </button>
+                    <button type="button" data-category="social" class="category-btn px-4 py-2 rounded-full bg-gray-200 hover:bg-gray-300">
+                        👥 Social
+                    </button>
+                </nav>
+            </div>
+                <!-- Generator Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Badge Configuration Panel -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-lg shadow-sm p-6">
+                            <!-- Repository Input -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Repository</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
+                                        github.com/
+                                    </span>
+                                    <input type="text" id="repo-input" placeholder="username/repository" 
+                                           class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md border border-gray-300 focus:ring-primary focus:border-primary sm:text-sm">
+                                </div>
+                            </div>
+    
+                            <!-- Badge Options Grid -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Badge Type -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Badge Type</label>
+                                    <select id="badge-type" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md">
+                                        <optgroup label="Status">
+                                            <option value="build">Build Status</option>
+                                            <option value="tests">Tests</option>
+                                            <option value="coverage">Coverage</option>
+                                            <option value="deploy">Deployment</option>
+                                        </optgroup>
+                                        <optgroup label="Package">
+                                            <option value="version">Version</option>
+                                            <option value="downloads">Downloads</option>
+                                            <option value="size">Size</option>
+                                        </optgroup>
+                                        <optgroup label="Info">
+                                            <option value="license">License</option>
+                                            <option value="issues">Issues</option>
+                                            <option value="stars">Stars</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+    
+                                <!-- Style Selection -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Style</label>
+                                    <select id="badge-style" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md">
+                                        <option value="flat">Flat</option>
+                                        <option value="flat-square">Flat Square</option>
+                                        <option value="for-the-badge">For The Badge</option>
+                                        <option value="plastic">Plastic</option>
+                                        <option value="social">Social</option>
+                                    </select>
+                                </div>
+    
+                                <!-- Label -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Label</label>
+                                    <input type="text" id="badge-label" placeholder="Custom label" 
+                                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
+                                </div>
+    
+                                <!-- Color -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Color</label>
+                                    <div class="grid grid-cols-5 gap-2">
+                                        <button class="w-full h-8 rounded border border-gray-200 bg-blue-500" data-color="blue"></button>
+                                        <button class="w-full h-8 rounded border border-gray-200 bg-green-500" data-color="green"></button>
+                                        <button class="w-full h-8 rounded border border-gray-200 bg-red-500" data-color="red"></button>
+                                        <button class="w-full h-8 rounded border border-gray-200 bg-yellow-500" data-color="yellow"></button>
+                                        <button class="w-full h-8 rounded border border-gray-200 bg-purple-500" data-color="purple"></button>
+                                    </div>
+                                </div>
+    
+                                <!-- Logo -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Logo</label>
+                                    <div class="flex space-x-2">
+                                        <select id="badge-logo" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-md">
+                                            <option value="github">GitHub</option>
+                                            <option value="npm">npm</option>
+                                            <option value="docker">Docker</option>
+                                            <option value="custom">Custom</option>
+                                        </select>
+                                        <input type="text" id="custom-logo" placeholder="Custom logo URL" 
+                                               class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm hidden">
+                                    </div>
+                                </div>
+    
+                                <!-- Message -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                                    <input type="text" id="badge-message" placeholder="Custom message" 
+                                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-primary focus:border-primary sm:text-sm">
+                                </div>
+                            </div>
+    
+                            <!-- Advanced Options -->
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Advanced Options</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-4 w-4 text-primary">
+                                        <span class="ml-2 text-sm text-gray-600">Cache Control</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-4 w-4 text-primary">
+                                        <span class="ml-2 text-sm text-gray-600">Link Badge</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="checkbox" class="form-checkbox h-4 w-4 text-primary">
+                                        <span class="ml-2 text-sm text-gray-600">Auto Update</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Preview Panel -->
+                    <div class="lg:col-span-1">
+                        <div class="sticky top-24">
+                            <div class="bg-white rounded-lg shadow-sm p-6">
+                                <h3 class="text-lg font-medium text-gray-900 mb-4">Preview</h3>
+                                
+                                <!-- Badge Preview -->
+                                <div id="badge-preview" class="mb-6 p-4 bg-gray-50 rounded-md min-h-[100px] flex items-center justify-center">
+                                    <div class="text-center text-gray-400">
+                                        <i class="fas fa-badge text-xl mb-2"></i>
+                                        <p>Badge preview will appear here</p>
+                                    </div>
+                                </div>
+    
+                                <!-- Code Output -->
+                                <div class="space-y-4">
+                                    <!-- Markdown -->
+                                    <div>
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="block text-sm font-medium text-gray-700">Markdown</label>
+                                            <button id="copy-markdown" class="text-sm text-primary hover:text-primary-dark">
+                                                <i class="far fa-copy mr-1"></i>
+                                                Copy
+                                            </button>
+                                        </div>
+                                        <textarea id="markdown-output" rows="2" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" readonly></textarea>
+                                    </div>
+    
+                                    <!-- HTML -->
+                                    <div>
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="block text-sm font-medium text-gray-700">HTML</label>
+                                            <button id="copy-html" class="text-sm text-primary hover:text-primary-dark">
+                                                <i class="far fa-copy mr-1"></i>
+                                                Copy
+                                            </button>
+                                        </div>
+                                        <textarea id="html-output" rows="2" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-primary focus:border-primary" readonly></textarea>
+                                    </div>
+                                </div>
+    
+                                <!-- Actions -->
+                                <div class="mt-6 flex space-x-3">
+                                    <button id="generate-badge" class="flex-1 bg-primary text-white px-4 py-2 rounded-md hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                        Generate Badge
+                                    </button>
+                                    <button id="reset-form" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                                        <i class="fas fa-redo"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+            <!-- Features Section -->
+    <section class="py-20 bg-white" id="features">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <div class="inline-block mb-4 px-6 py-2 rounded-full bg-primary/10 border border-primary/20">
+                    <span class="text-primary font-medium">Powerful Features</span>
+                </div>
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                    Everything You Need to Create Perfect Badges
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Generate professional badges with advanced customization options and real-time preview
+                </p>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Feature 1: Real-time Preview -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-eye text-xl text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Real-time Preview</h3>
+                    <p class="text-gray-600">See your badge changes instantly with our live preview feature.</p>
+                </div>
+
+                <!-- Feature 2: Multiple Styles -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-palette text-xl text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Multiple Styles</h3>
+                    <p class="text-gray-600">Choose from various styles including flat, plastic, and social badges.</p>
+                </div>
+
+                <!-- Feature 3: Custom Colors -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-fill-drip text-xl text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Custom Colors</h3>
+                    <p class="text-gray-600">Customize badge colors to match your project's branding.</p>
+                </div>
+
+                <!-- Feature 4: Dynamic Data -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-sync text-xl text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Dynamic Data</h3>
+                    <p class="text-gray-600">Auto-updating badges that reflect your repository's latest status.</p>
+                </div>
+
+                <!-- Feature 5: Easy Integration -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-code text-xl text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Easy Integration</h3>
+                    <p class="text-gray-600">Copy and paste markdown or HTML code directly into your README.</p>
+                </div>
+
+                <!-- Feature 6: Template Library -->
+                <div class="feature-card bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-book text-xl text-primary"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Template Library</h3>
+                    <p class="text-gray-600">Access pre-made templates for common badge types.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ Section -->
+    <section class="py-20 bg-gray-50" id="faq">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <div class="inline-block mb-4 px-6 py-2 rounded-full bg-primary/10 border border-primary/20">
+                    <span class="text-primary font-medium">FAQ</span>
+                </div>
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">
+                    Frequently Asked Questions
+                </h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                    Find answers to common questions about our badge generator
+                </p>
+            </div>
+
+            <!-- FAQ Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                <!-- FAQ Item 1 -->
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                        What types of badges can I create?
+                    </h3>
+                    <p class="text-gray-600">
+                        You can create badges for build status, version, downloads, license, code coverage, and custom metrics. Our generator supports all shields.io badge types.
+                    </p>
+                </div>
+
+                <!-- FAQ Item 2 -->
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                        Are the badges automatically updated?
+                    </h3>
+                    <p class="text-gray-600">
+                        Yes, dynamic badges automatically update to reflect your repository's current status. Static badges remain unchanged unless manually updated.
+                    </p>
+                </div>
+
+                <!-- FAQ Item 3 -->
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                        Can I customize badge colors?
+                    </h3>
+                    <p class="text-gray-600">
+                        Yes, you can use custom colors using hex codes or choose from our pre-defined color palette. You can set different colors for the badge label and message sections.
+                    </p>
+                </div>
+
+                <!-- FAQ Item 4 -->
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                        Do you support private repositories?
+                    </h3>
+                    <p class="text-gray-600">
+                        Yes, you can generate badges for private repositories by authenticating with your GitHub account and providing the necessary access tokens.
+                    </p>
+                </div>
+
+                <!-- FAQ Item 5 -->
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                        What badge styles are available?
+                    </h3>
+                    <p class="text-gray-600">
+                        We support flat, flat-square, plastic, for-the-badge, and social styles. Each style can be customized with different colors and logos.
+                    </p>
+                </div>
+
+                <!-- FAQ Item 6 -->
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                        Can I use custom logos?
+                    </h3>
+                    <p class="text-gray-600">
+                        Yes, you can use custom logos by providing a URL to your image. We also support popular service logos like GitHub, npm, Docker, and more.
+                    </p>
+                </div>
+
+                <!-- FAQ Item 7 -->
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                        How do I integrate badges with my README?
+                    </h3>
+                    <p class="text-gray-600">
+                        Simply copy the generated markdown or HTML code and paste it into your README file. The badges will automatically appear in your repository.
+                    </p>
+                </div>
+
+                <!-- FAQ Item 8 -->
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">
+                        Is there a rate limit?
+                    </h3>
+                    <p class="text-gray-600">
+                        Free tier has a reasonable rate limit. Premium users get higher limits and priority access to our API endpoints.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white pt-20 pb-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Footer Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+            <!-- Company Info -->
+            <div class="space-y-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
+                        <i class="fas fa-certificate text-2xl text-white"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold">BadgeForge</h3>
+                        <p class="text-sm text-gray-400">Professional Badge Generator</p>
+                    </div>
+                </div>
+                <p class="text-gray-400">
+                    Creating professional GitHub badges has never been easier. Join thousands of developers using BadgeForge.
+                </p>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-github text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-twitter text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-discord text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                        <i class="fab fa-linkedin text-xl"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Quick Links -->
+            <div>
+                <h3 class="text-lg font-semibold mb-6">Quick Links</h3>
+                <ul class="space-y-4">
+                    <li><a href="#features" class="text-gray-400 hover:text-white transition-colors">Features</a></li>
+                    <li><a href="#templates" class="text-gray-400 hover:text-white transition-colors">Templates</a></li>
+                    <li><a href="#pricing" class="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
+                    <li><a href="#docs" class="text-gray-400 hover:text-white transition-colors">Documentation</a></li>
+                    <li><a href="#blog" class="text-gray-400 hover:text-white transition-colors">Blog</a></li>
+                </ul>
+            </div>
+
+            <!-- Resources -->
+            <div>
+                <h3 class="text-lg font-semibold mb-6">Resources</h3>
+                <ul class="space-y-4">
+                    <li><a href="#" class="text-gray-400 hover:text-white transition-colors">API Reference</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Status Page</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition-colors">GitHub Integration</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Support Center</a></li>
+                    <li><a href="#" class="text-gray-400 hover:text-white transition-colors">Custom Solutions</a></li>
+                </ul>
+            </div>
+
+            <!-- Newsletter -->
+            <div>
+                <h3 class="text-lg font-semibold mb-6">Stay Updated</h3>
+                <p class="text-gray-400 mb-4">
+                    Subscribe to our newsletter for the latest updates and features.
+                </p>
+                <form class="space-y-4">
+                    <input type="email" placeholder="Enter your email" 
+                           class="w-full px-4 py-2 rounded-md bg-gray-800 border border-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary">
+                    <button type="submit" class="w-full px-4 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors">
+                        Subscribe
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Bottom Bar -->
+        <div class="pt-8 border-t border-gray-800">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Copyright -->
+                <div class="text-gray-400 text-sm">
+                    © 2025 BadgeForge. All rights reserved.
+                    <div class="current-time mt-1">
+                        Current Time (UTC): <span id="footer-time">2025-04-14 10:55:04</span>
+                    </div>
+                </div>
+                <!-- Legal Links -->
+                <div class="flex space-x-6 md:justify-end text-sm">
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
+                    <a href="#" class="text-gray-400 hover:text-white transition-colors">Cookie Policy</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- Toast Notifications -->
+<div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-4"></div>
+
+
+<script>
+    class BadgeGenerator {
+    constructor() {
+        this.baseUrl = 'https://img.shields.io';
+        this.currentCategory = 'build';
+        this.init();
+    }
+
+    init() {
+        this.setupTimeUpdate();
+        this.setupCategoryNavigation();
+        this.setupEventListeners();
+        // Show initial category
+        this.showCategory('build');
+    }
+
+    setupTimeUpdate() {
+        const updateTime = () => {
+            const now = new Date();
+            const timeString = now.toISOString().replace('T', ' ').substring(0, 19);
+            document.getElementById('current-time').textContent = timeString;
+        };
+        updateTime();
+        setInterval(updateTime, 1000);
+    }
+
+    setupCategoryNavigation() {
+        const buttons = document.querySelectorAll('.category-btn');
+        buttons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Remove active class from all buttons
+                buttons.forEach(btn => {
+                    btn.classList.remove('bg-indigo-600', 'text-white');
+                    btn.classList.add('bg-gray-200', 'hover:bg-gray-300');
+                });
+
+                // Add active class to clicked button
+                button.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+                button.classList.add('bg-indigo-600', 'text-white');
+
+                // Update category
+                const category = button.dataset.category;
+                this.currentCategory = category;
+                this.showCategory(category);
+            });
+        });
+    }
+
+    setupEventListeners() {
+        document.getElementById('generate-badge').addEventListener('click', () => this.generateBadge());
+        document.getElementById('copy-markdown').addEventListener('click', () => this.copyToClipboard('markdown'));
+        document.getElementById('copy-html').addEventListener('click', () => this.copyToClipboard('html'));
+        document.getElementById('reset-form').addEventListener('click', () => this.resetForm());
+        
+        // Handle logo selection
+        document.getElementById('badge-logo').addEventListener('change', (e) => {
+            const customLogoInput = document.getElementById('custom-logo');
+            customLogoInput.style.display = e.target.value === 'custom' ? 'block' : 'none';
+        });
+    }
+
+    showCategory(category) {
+        // Update form fields based on category
+        const typeSelect = document.getElementById('badge-type');
+        const labelInput = document.getElementById('badge-label');
+        const messageInput = document.getElementById('badge-message');
+        
+        switch(category) {
+            case 'build':
+                this.updateBuildOptions();
+                break;
+            case 'testing':
+                this.updateTestingOptions();
+                break;
+            case 'package':
+                this.updatePackageOptions();
+                break;
+            case 'version':
+                this.updateVersionOptions();
+                break;
+            case 'license':
+                this.updateLicenseOptions();
+                break;
+            case 'tech':
+                this.updateTechOptions();
+                break;
+            case 'stats':
+                this.updateStatsOptions();
+                break;
+            case 'quality':
+                this.updateQualityOptions();
+                break;
+            case 'social':
+                this.updateSocialOptions();
+                break;
+        }
+    }
+
+    updateBuildOptions() {
+        const typeSelect = document.getElementById('badge-type');
+        typeSelect.innerHTML = `
+            <option value="workflow">GitHub Actions Workflow</option>
+            <option value="travis">Travis CI</option>
+            <option value="circle">CircleCI</option>
+            <option value="jenkins">Jenkins</option>
+            <option value="azure">Azure Pipelines</option>
+        `;
+        document.getElementById('badge-label').value = 'build';
+        document.getElementById('badge-message').value = 'passing';
+    }
+
+    updateTestingOptions() {
+        const typeSelect = document.getElementById('badge-type');
+        typeSelect.innerHTML = `
+            <option value="tests">Tests</option>
+            <option value="coverage">Code Coverage</option>
+            <option value="codecov">Codecov</option>
+            <option value="coveralls">Coveralls</option>
+            <option value="codeclimate">Code Climate Coverage</option>
+        `;
+        document.getElementById('badge-label').value = 'coverage';
+        document.getElementById('badge-message').value = '100%';
+    }
+
+    updatePackageOptions() {
+        const typeSelect = document.getElementById('badge-type');
+        typeSelect.innerHTML = `
+            <option value="npm">npm Package</option>
+            <option value="pypi">PyPI Package</option>
+            <option value="composer">Composer Package</option>
+            <option value="nuget">NuGet Package</option>
+            <option value="maven">Maven Package</option>
+        `;
+        document.getElementById('badge-label').value = 'version';
+        document.getElementById('badge-message').value = '1.0.0';
+    }
+
+    updateVersionOptions() {
+        const typeSelect = document.getElementById('badge-type');
+        typeSelect.innerHTML = `
+            <option value="release">GitHub Release</option>
+            <option value="tag">Latest Tag</option>
+            <option value="pre-release">Pre-release</option>
+            <option value="manifest">Manifest Version</option>
+        `;
+        document.getElementById('badge-label').value = 'version';
+        document.getElementById('badge-message').value = 'v1.0.0';
+    }
+
+    updateLicenseOptions() {
+        const typeSelect = document.getElementById('badge-type');
+        typeSelect.innerHTML = `
+            <option value="github-license">GitHub License</option>
+            <option value="npm-license">npm License</option>
+            <option value="custom-license">Custom License</option>
+        `;
+        document.getElementById('badge-label').value = 'license';
+        document.getElementById('badge-message').value = 'MIT';
+    }
+
+    updateTechOptions() {
+        const typeSelect = document.getElementById('badge-type');
+        typeSelect.innerHTML = `
+            <option value="language">Programming Language</option>
+            <option value="framework">Framework</option>
+            <option value="platform">Platform</option>
+            <option value="database">Database</option>
+        `;
+        document.getElementById('badge-label').value = 'made with';
+        document.getElementById('badge-message').value = 'javascript';
+    }
+
+    updateStatsOptions() {
+        const typeSelect = document.getElementById('badge-type');
+        typeSelect.innerHTML = `
+            <option value="stars">GitHub Stars</option>
+            <option value="forks">GitHub Forks</option>
+            <option value="issues">GitHub Issues</option>
+            <option value="downloads">Downloads</option>
+        `;
+        document.getElementById('badge-label').value = 'stars';
+        document.getElementById('badge-message').value = '1k';
+    }
+
+    updateQualityOptions() {
+        const typeSelect = document.getElementById('badge-type');
+        typeSelect.innerHTML = `
+            <option value="codeclimate">Code Climate</option>
+            <option value="codefactor">CodeFactor</option>
+            <option value="codacy">Codacy</option>
+            <option value="sonar">SonarCloud</option>
+        `;
+        document.getElementById('badge-label').value = 'quality';
+        document.getElementById('badge-message').value = 'A';
+    }
+
+    updateSocialOptions() {
+        const typeSelect = document.getElementById('badge-type');
+        typeSelect.innerHTML = `
+            <option value="twitter">Twitter Follow</option>
+            <option value="discord">Discord</option>
+            <option value="youtube">YouTube</option>
+            <option value="reddit">Reddit</option>
+        `;
+        document.getElementById('badge-label').value = 'follow';
+        document.getElementById('badge-message').value = '@username';
+    }
+
+    generateBadge() {
+        const repo = document.getElementById('repo-input').value;
+        const type = document.getElementById('badge-type').value;
+        const style = document.getElementById('badge-style').value;
+        const label = document.getElementById('badge-label').value;
+        const message = document.getElementById('badge-message').value;
+        const color = document.querySelector('[data-color].selected')?.dataset.color || 'blue';
+
+        let badgeUrl = '';
+        
+        switch(this.currentCategory) {
+            case 'build':
+                badgeUrl = `${this.baseUrl}/github/workflow/status/${repo}/${type}?style=${style}`;
+                break;
+            case 'testing':
+                badgeUrl = type === 'coverage' 
+                    ? `${this.baseUrl}/codecov/c/github/${repo}?style=${style}`
+                    : `${this.baseUrl}/github/workflow/status/${repo}/tests?label=tests&style=${style}`;
+                break;
+            // Add cases for other categories...
+        }
+
+        this.updatePreview(badgeUrl);
+        this.updateOutputs(badgeUrl);
+    }
+
+    // Add other necessary methods (updatePreview, copyToClipboard, etc.)
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    new BadgeGenerator();
+});
+
+
+</script>
+<!-- Scripts -->
+<script src="main.js"></script>
+</body>
+</html>
